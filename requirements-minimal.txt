@@ -1,0 +1,41 @@
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# AI/ML Libraries
+anthropic==0.7.8
+httpx==0.25.2
+
+# File System Monitoring
+watchdog==3.0.0
+
+# Database
+sqlalchemy==2.0.23
+aiosqlite==0.19.0
+
+# HTTP Client
+aiohttp==3.9.1
+requests==2.31.0
+
+# Email
+aiosmtplib==3.0.1
+email-validator==2.1.0
+
+# Configuration
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# Utilities
+python-multipart==0.0.6
+pillow==10.1.0
+pypdf==3.17.1
+python-docx==1.1.0
+
+# Monitoring & Logging
+loguru==0.7.2
+
+# Date/Time
+python-dateutil==2.8.2
+pytz==2023.3

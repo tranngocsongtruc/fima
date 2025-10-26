@@ -1,0 +1,21 @@
+# Core Framework - ESSENTIAL
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# AI - ESSENTIAL
+anthropic
+httpx
+
+# File System Monitoring - ESSENTIAL
+watchdog
+
+# Configuration - ESSENTIAL
+python-dotenv
+
+# HTTP Client - ESSENTIAL
+requests
+
+# Utilities - ESSENTIAL
+python-dateutil

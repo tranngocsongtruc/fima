@@ -1,0 +1,57 @@
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# AI/ML Libraries
+anthropic==0.7.8
+httpx==0.25.2  # Required for Anthropic SDK
+
+# File System Monitoring
+watchdog==3.0.0
+pyobjc-framework-Cocoa==10.0  # macOS FSEvents
+pyobjc-framework-UserNotifications==10.0  # macOS notifications
+
+# Database
+sqlalchemy==2.0.23
+aiosqlite==0.19.0
+
+# HTTP Client
+aiohttp==3.9.1
+requests==2.31.0  # For Lava integration
+
+# Email
+aiosmtplib==3.0.1
+email-validator==2.1.0
+
+# Configuration
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# Utilities
+python-multipart==0.0.6
+python-magic==0.4.27  # File type detection
+pillow==10.1.0  # Image processing
+pypdf==3.17.1  # PDF text extraction
+python-docx==1.1.0  # Word document processing
+
+# Monitoring & Logging
+prometheus-client==0.19.0
+loguru==0.7.2
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# Model Optimization (Annapurna Track)
+torch==2.1.1
+onnx==1.15.0
+onnxruntime==1.16.3
+transformers==4.35.2
+
+# Removed: Composio (not applicable to file management use case)
+
+# Date/Time
+python-dateutil==2.8.2
+pytz==2023.3
