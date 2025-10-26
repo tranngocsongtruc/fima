@@ -19,6 +19,7 @@ import uvicorn
 from config import settings, validate_api_keys, get_downloads_folder
 from ai_classifier import AIFileClassifier
 from notification_manager import NotificationManager
+from first_launch import check_and_run_first_launch
 
 # Optional imports - gracefully handle missing dependencies
 try:
@@ -424,6 +425,13 @@ async def startup_event():
     print("🚀 Smart File Organizer - Starting Up")
     print("="*60)
     
+    # Check for first launch
+    monitor_dir = get_downloads_folder()
+    user_choice = check_and_run_first_launch(monitor_dir)
+    
+    if user_choice:
+        print(f"\n✅ First launch complete - User chose: {user_choice}")
+    
     # Validate API keys
     if not validate_api_keys():
         print("\n⚠️  WARNING: API keys not configured properly")
@@ -431,7 +439,8 @@ async def startup_event():
         print("Please configure your .env file with valid API keys.\n")
     
     # Start reminder service in background
-    asyncio.create_task(reminder_service.start_background_task())
+    if reminder_service:
+        asyncio.create_task(reminder_service.start_background_task())
     
     print(f"\n✅ Server ready at http://{settings.host}:{settings.port}")
     print(f"📚 API docs at http://{settings.host}:{settings.port}/docs")
