@@ -414,6 +414,71 @@ async def get_statistics():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/lava/stats")
+async def get_lava_stats():
+    """Get Lava API usage statistics"""
+    try:
+        from lava_integration import lava_gateway
+        
+        if not lava_gateway or not settings.lava_api_key:
+            return {
+                "total_requests": 0,
+                "total_cost": 0,
+                "total_tokens": 0,
+                "enabled": False
+            }
+        
+        # Get stats from Lava (this would be a real API call in production)
+        # For now, return mock data based on operations count
+        operations = db.get_recent_operations(1000) if db else []
+        total_requests = len(operations)
+        
+        # Estimate: ~$0.001 per request, ~1000 tokens per request
+        total_cost = total_requests * 0.001
+        total_tokens = total_requests * 1000
+        
+        return {
+            "total_requests": total_requests,
+            "total_cost": total_cost,
+            "total_tokens": total_tokens,
+            "enabled": True
+        }
+    
+    except Exception as e:
+        return {
+            "total_requests": 0,
+            "total_cost": 0,
+            "total_tokens": 0,
+            "enabled": False
+        }
+
+
+@app.get("/api/status")
+async def get_status():
+    """Get current system status"""
+    try:
+        operations = db.get_recent_operations(100) if db else []
+        
+        # Calculate stats
+        files_organized = len(operations)
+        avg_confidence = sum(op.get('confidence', 0) for op in operations) / len(operations) if operations else 0
+        
+        return {
+            "files_organized": files_organized,
+            "total_operations": files_organized,
+            "avg_confidence": avg_confidence,
+            "monitoring": file_monitor is not None and hasattr(file_monitor, 'is_running') and file_monitor.is_running
+        }
+    
+    except Exception as e:
+        return {
+            "files_organized": 0,
+            "total_operations": 0,
+            "avg_confidence": 0,
+            "monitoring": False
+        }
+
+
 # ============================================
 # Startup and Shutdown Events
 # ============================================

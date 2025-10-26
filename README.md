@@ -1,6 +1,8 @@
-# Smart File Organizer - AI-Powered Download Management
+# Smart File Organizer
 
-An intelligent file management system that automatically organizes your downloads using AI, built for CalHacks 12.
+**AI-powered file organization for macOS** - Never manually organize files again!
+
+Built for CalHacks 12
 
 ## 🏆 Sponsor Technology Integration
 
@@ -36,15 +38,29 @@ An intelligent file management system that automatically organizes your download
 - Python 3.10+
 - Node.js 18+
 
-## 🔧 Installation
+## 📥 Quick Start
 
+### Option 1: Download & Run (Recommended)
 ```bash
 # Clone the repository
-git clone <your-repo-url> fima
+git clone https://github.com/tranngocsongtruc/fima.git
 cd fima
 
-# Install Python dependencies
-pip install -r requirements.txt
+# Install dependencies
+pip install -r requirements-core.txt
+
+# Configure API keys (see below)
+cp .env.example .env
+# Edit .env with your Claude API key
+
+# Launch the app
+./launch_app.sh
+```
+
+### Option 2: Build macOS App (Advanced)
+```bash
+python3 build_app.py
+# Creates SmartFileOrganizer.dmg for distribution
 ```
 
 ## 🔑 API Keys Setup

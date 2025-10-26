@@ -57,8 +57,25 @@ class AIFileClassifier:
             print(f"Error extracting metadata: {e}")
             return {'filename': file_path.name, 'extension': file_path.suffix}
     
-    def _extract_pdf_text(self, file_path: Path, max_chars: int = 500) -> str:
-        """Extract first few characters from PDF for context"""
+    def _extract_pdf_text(self, file_path: Path, max_chars: int = None) -> str:
+        """
+        Extract first few characters from PDF for context
+        Respects privacy settings
+        """
+        # Check privacy settings
+        if not settings.extract_pdf_text:
+            return ""
+        
+        if settings.privacy_mode == "strict":
+            return ""
+        
+        # Use configured max_chars or default based on privacy mode
+        if max_chars is None:
+            if settings.privacy_mode == "balanced":
+                max_chars = 200
+            else:  # standard
+                max_chars = settings.max_pdf_chars
+        
         try:
             from pypdf import PdfReader
             reader = PdfReader(str(file_path))
@@ -85,6 +102,10 @@ class AIFileClassifier:
         
         # Build prompt for Claude
         prompt = self._build_classification_prompt(metadata)
+        
+        # Log AI request if auditing is enabled
+        if settings.log_ai_requests:
+            self._log_ai_request(metadata)
         
         try:
             # Call Claude API for intelligent classification
@@ -245,6 +266,37 @@ Analyze the filename, content, and context to determine:
                 'confidence': 0.3,
                 'reasoning': 'Unknown file type'
             }
+    
+    def _log_ai_request(self, metadata: Dict):
+        """
+        Log what data is being sent to AI for auditing
+        Only logs if LOG_AI_REQUESTS=true in .env
+        """
+        import datetime
+        from pathlib import Path
+        
+        log_dir = Path.home() / ".smart_file_organizer" / "audit_logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        
+        log_file = log_dir / f"ai_requests_{datetime.date.today()}.log"
+        
+        with open(log_file, 'a') as f:
+            timestamp = datetime.datetime.now().isoformat()
+            f.write(f"\n[{timestamp}] AI Request:\n")
+            f.write(f"  Filename: {metadata.get('filename', 'N/A')}\n")
+            f.write(f"  Extension: {metadata.get('extension', 'N/A')}\n")
+            f.write(f"  Size: {metadata.get('size_mb', 0)} MB\n")
+            f.write(f"  MIME: {metadata.get('mime_type', 'N/A')}\n")
+            
+            if 'content_preview' in metadata and metadata['content_preview']:
+                preview_len = len(metadata['content_preview'])
+                f.write(f"  Content Preview: {preview_len} chars sent\n")
+                f.write(f"  Preview: {metadata['content_preview'][:100]}...\n")
+            else:
+                f.write(f"  Content Preview: None (privacy mode: {settings.privacy_mode})\n")
+            
+            f.write(f"  Privacy Mode: {settings.privacy_mode}\n")
+            f.write("-" * 60 + "\n")
     
     def batch_classify(self, file_paths: list[Path]) -> list[Tuple[Dict, float]]:
         """Classify multiple files efficiently"""

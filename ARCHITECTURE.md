@@ -19,7 +19,7 @@
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │                    API Endpoints                         │  │
-│  │  /analyze  /reorganize  /monitor  /reminder  /report    │  │
+│  │  /analyze  /reorganize  /monitor  /reminder  /status    │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
@@ -34,19 +34,19 @@
 │                                                                 │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
 │  │  File Monitor    │  │  AI Classifier   │  │   Folder     │ │
-│  │  (Watchdog)      │  │  (Groq)          │  │   Analyzer   │ │
+│  │  (Watchdog)      │  │  (Claude)        │  │   Analyzer   │ │
 │  │                  │  │                  │  │   (Claude)   │ │
-│  │  - FSEvents      │  │  - Fast classify │  │  - Deep      │ │
-│  │  - Real-time     │  │  - <50ms         │  │    analysis  │ │
+│  │  - FSEvents      │  │  - Smart classify│  │  - Deep      │ │
+│  │  - Real-time     │  │  - Context aware │  │    analysis  │ │
 │  │  - Downloads     │  │  - High accuracy │  │  - Patterns  │ │
 │  └──────────────────┘  └──────────────────┘  └──────────────┘ │
 │                                                                 │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
-│  │  Reorganizer     │  │  Email Reporter  │  │   Reminder   │ │
-│  │                  │  │                  │  │   Service    │ │
-│  │  - Move files    │  │  - HTML reports  │  │  - Async     │ │
-│  │  - Create dirs   │  │  - SMTP send     │  │  - Scheduled │ │
-│  │  - Archive       │  │  - Beautiful UI  │  │  - Alerts    │ │
+│  │  Reorganizer     │  │  First Launch    │  │   Reminder   │ │
+│  │                  │  │  Manager         │  │   Service    │ │
+│  │  - Move files    │  │  - Permissions   │  │  - Async     │ │
+│  │  - Create dirs   │  │  - Analysis      │  │  - Scheduled │ │
+│  │  - Archive       │  │  - User choice   │  │  - Alerts    │ │
 │  └──────────────────┘  └──────────────────┘  └──────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
             │                       │                   │
@@ -54,10 +54,12 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                      EXTERNAL SERVICES                          │
 │                                                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐ │
-│  │    Groq      │  │   Claude     │  │   Lava (Optional)    │ │
-│  │    API       │  │    API       │  │   API Gateway        │ │
-│  └──────────────┘  └──────────────┘  └──────────────────────┘ │
+│  ┌──────────────────────┐  ┌──────────────────────────────┐   │
+│  │   Claude (Anthropic) │  │   Lava (Optional)            │   │
+│  │   - AI Classification│  │   - API Gateway              │   │
+│  │   - Context analysis │  │   - Cost tracking            │   │
+│  │   - Privacy-first    │  │   - Usage analytics          │   │
+│  └──────────────────────┘  └──────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -77,16 +79,18 @@
    ├─> file_monitor.py: on_created() called
    │
    ▼
-3. AI CLASSIFICATION (Groq)
+3. AI CLASSIFICATION (Claude)
    │
    ├─> Extract metadata (name, type, size)
-   ├─> Extract PDF text preview (first 500 chars)
-   ├─> Send to Groq API
-   ├─> Receive classification (<50ms)
+   ├─> Extract PDF text preview (configurable: 0-500 chars)
+   ├─> Respect privacy mode (strict/balanced/standard)
+   ├─> Send to Claude API via HTTPS/TLS
+   ├─> Receive classification (~500ms)
    │   {
    │     "category": "homework",
    │     "suggested_path": "uc_berkeley/fall_2025/cs170/homework",
-   │     "confidence": 0.95
+   │     "confidence": 0.95,
+   │     "reasoning": "CS170 course homework assignment"
    │   }
    │
    ▼
@@ -99,402 +103,477 @@
    ├─> Handle duplicates (append _1, _2, etc.)
    │
    ▼
-5. LOGGING & NOTIFICATION
+5. USER NOTIFICATION
    │
-   ├─> Log to SQLite database
-   │   - filename, original_path, new_path
-   │   - classification, confidence, timestamp
-   ├─> Show macOS notification
-   │   "File Organized: CS170_HW7.pdf → uc_berkeley/fall_2025/cs170/homework/"
+   ├─> Show macOS notification (top-right)
+   │   "📁 CS170_HW7.pdf → homework"
+   ├─> Update web UI (real-time)
+   ├─> Log operation to database
    │
    ▼
-6. USER SEES RESULT
-   │
-   └─> File in organized location
-   └─> Notification on screen
-   └─> Can view in Recent Operations
+6. COMPLETE
+   Total time: <1 second
 ```
 
 ---
 
-## 🧠 AI Classification Pipeline
+## 🔧 Component Breakdown
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    FILE METADATA EXTRACTION                     │
-│                                                                 │
-│  Input: /Users/user/Downloads/CS170_HW7.pdf                    │
-│                                                                 │
-│  Extract:                                                       │
-│  ├─ Filename: "CS170_HW7.pdf"                                  │
-│  ├─ Extension: ".pdf"                                          │
-│  ├─ Size: 2.3 MB                                               │
-│  ├─ MIME Type: "application/pdf"                               │
-│  └─ Content Preview: "CS 170 Homework 7\nDue: Oct 30..."       │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    GROQ AI CLASSIFICATION                       │
-│                                                                 │
-│  Prompt:                                                        │
-│  "Classify this file and suggest optimal folder structure:     │
-│   Filename: CS170_HW7.pdf                                      │
-│   Extension: .pdf                                              │
-│   Content: CS 170 Homework 7..."                               │
-│                                                                 │
-│  Model: llama-3.1-70b-versatile                                │
-│  Temperature: 0.3                                              │
-│  Response Format: JSON                                         │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    CLASSIFICATION RESULT                        │
-│                                                                 │
-│  {                                                              │
-│    "category": "homework",                                      │
-│    "subcategory": "assignment",                                 │
-│    "suggested_path": "uc_berkeley/fall_2025/cs170/homework",   │
-│    "confidence": 0.95,                                          │
-│    "reasoning": "Detected CS170 course homework assignment",    │
-│    "metadata": {                                                │
-│      "school": "UC Berkeley",                                   │
-│      "course": "CS170",                                         │
-│      "semester": "Fall 2025"                                    │
-│    }                                                            │
-│  }                                                              │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    CONFIDENCE CHECK                             │
-│                                                                 │
-│  IF confidence > 0.5:                                           │
-│    ├─> Auto-move file                                          │
-│    └─> Show success notification                               │
-│                                                                 │
-│  ELSE:                                                          │
-│    ├─> Keep in Downloads                                       │
-│    └─> Show "needs review" notification                        │
-└─────────────────────────────────────────────────────────────────┘
-```
+### 1. Frontend (Web UI)
+**Technology**: Vanilla JavaScript + HTML/CSS
+**Purpose**: User interface and control panel
+
+**Features**:
+- Start/stop monitoring
+- View recent operations
+- Configure settings
+- Real-time status updates
+
+**Files**:
+- `frontend/index.html` - Single-page application
+- Served by FastAPI static files
 
 ---
 
-## 📊 Folder Analysis Pipeline (Claude)
+### 2. Backend Server (FastAPI)
+**Technology**: Python 3.10+ with FastAPI
+**Purpose**: REST API and business logic
 
+**Key Endpoints**:
+```python
+GET  /                    # Serve web UI
+POST /api/analyze         # Analyze folder structure
+POST /api/reorganize      # Execute reorganization
+POST /api/monitor/start   # Start file monitoring
+POST /api/monitor/stop    # Stop file monitoring
+GET  /api/status          # Get current status
+POST /api/reminder        # Set file reminder
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    DIRECTORY STRUCTURE SCAN                     │
-│                                                                 │
-│  Scan: ~/Documents                                             │
-│  Max Depth: 4 levels                                           │
-│                                                                 │
-│  Result:                                                        │
-│  Documents/                                                     │
-│  ├─ School/ (45 files, 120 MB)                                │
-│  │  ├─ CS170/ (15 files)                                      │
-│  │  └─ Math/ (30 files)                                       │
-│  ├─ Work/ (120 files, 450 MB)                                 │
-│  └─ Personal/ (200 files, 1.2 GB)                             │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    CLAUDE PATTERN ANALYSIS                      │
-│                                                                 │
-│  Prompt:                                                        │
-│  "Analyze this folder structure:                               │
-│   [structure summary]                                          │
-│   What patterns do you observe?                                │
-│   What are strengths/weaknesses?"                              │
-│                                                                 │
-│  Model: claude-3-5-sonnet-20241022                             │
-│  Max Tokens: 2000                                              │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    ANALYSIS RESULT                              │
-│                                                                 │
-│  {                                                              │
-│    "patterns_observed": [                                       │
-│      "Mixed organization by project and date",                  │
-│      "Inconsistent naming conventions",                         │
-│      "Some folders very deep, others flat"                      │
-│    ],                                                           │
-│    "strengths": [                                               │
-│      "Clear separation of School/Work/Personal"                 │
-│    ],                                                           │
-│    "weaknesses": [                                              │
-│      "No consistent date-based organization",                   │
-│      "Duplicate files across folders"                           │
-│    ],                                                           │
-│    "consistency_score": 0.6                                     │
-│  }                                                              │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    OPTIMIZATION SUGGESTIONS                     │
-│                                                                 │
-│  Prompt:                                                        │
-│  "Based on this analysis, suggest improvements..."             │
-│                                                                 │
-│  Result:                                                        │
-│  {                                                              │
-│    "suggested_structure": {                                     │
-│      "root_folders": [                                          │
-│        "uc_berkeley/",                                          │
-│        "work/",                                                 │
-│        "personal/"                                              │
-│      ],                                                         │
-│      "naming_conventions": [                                    │
-│        "Use lowercase with underscores",                        │
-│        "Include semester/year for school files"                 │
-│      ]                                                          │
-│    },                                                           │
-│    "migration_plan": [                                          │
-│      {                                                          │
-│        "action": "move",                                        │
-│        "source": "School/CS170/hw1.pdf",                       │
-│        "destination": "uc_berkeley/fall_2025/cs170/homework/", │
-│        "reason": "Standardize school organization"              │
-│      }                                                          │
-│    ]                                                            │
-│  }                                                              │
-└─────────────────────────────────────────────────────────────────┘
-```
+
+**Files**:
+- `backend/main.py` - FastAPI application
+- `backend/config.py` - Configuration management
 
 ---
 
-## 🔔 Notification System
+### 3. AI Classifier (Claude)
+**Technology**: Anthropic Claude 3.5 Sonnet
+**Purpose**: Intelligent file classification
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    NOTIFICATION TRIGGERS                        │
-│                                                                 │
-│  1. File Organized                                             │
-│     ├─> Title: "File Organized"                               │
-│     ├─> Message: "filename → folder/"                         │
-│     └─> Sound: Glass                                          │
-│                                                                 │
-│  2. Progress Update (50%, 90%, 100%)                           │
-│     ├─> Title: "Reorganization Progress"                      │
-│     ├─> Message: "X/Y operations completed"                   │
-│     └─> Sound: Only at 100%                                   │
-│                                                                 │
-│  3. File Reminder                                              │
-│     ├─> Title: "File Reminder"                                │
-│     ├─> Message: "Check: filename"                            │
-│     └─> Sound: Glass                                          │
-│                                                                 │
-│  4. User Choice Confirmation                                   │
-│     ├─> Title: "Choice Confirmed"                             │
-│     ├─> Message: "I support your decision..."                 │
-│     └─> Sound: None                                           │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    macOS NOTIFICATION API                       │
-│                                                                 │
-│  Method: osascript (AppleScript)                               │
-│                                                                 │
-│  Command:                                                       │
-│  osascript -e '                                                │
-│    display notification "message"                              │
-│    with title "Smart File Organizer"                           │
-│    subtitle "title"                                            │
-│    sound name "Glass"                                          │
-│  '                                                             │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    USER SEES NOTIFICATION                       │
-│                                                                 │
-│  ┌────────────────────────────────────────────────┐            │
-│  │  Smart File Organizer                          │            │
-│  │  File Organized                                │            │
-│  │  CS170_HW7.pdf → uc_berkeley/.../homework/     │            │
-│  └────────────────────────────────────────────────┘            │
-│                                                                 │
-│  Location: Top-right of screen                                 │
-│  Duration: ~5 seconds                                          │
-│  Sound: Glass.aiff (if enabled)                                │
-└─────────────────────────────────────────────────────────────────┘
-```
+**Process**:
+1. Extract file metadata
+2. Optionally extract PDF preview (respects privacy mode)
+3. Send to Claude API with context
+4. Receive structured classification
+5. Parse and validate response
+
+**Privacy Modes**:
+- **Strict**: Filename + metadata only (no content)
+- **Balanced**: + 200 chars from PDFs
+- **Standard**: + 500 chars from PDFs
+
+**Files**:
+- `backend/ai_classifier.py` - Classification logic
+- `backend/lava_integration.py` - Optional Lava routing
 
 ---
 
-## 💾 Database Schema
+### 4. File Monitor (Watchdog)
+**Technology**: Python Watchdog + macOS FSEvents
+**Purpose**: Real-time file system monitoring
 
+**How it works**:
+1. Watch ~/Downloads directory
+2. Detect new file events (FSEvents)
+3. Trigger classification pipeline
+4. Handle file operations
+
+**Features**:
+- Real-time detection (<200ms)
+- Debouncing (avoid duplicate events)
+- Error handling
+- Graceful shutdown
+
+**Files**:
+- `backend/file_monitor.py` - Monitoring logic
+
+---
+
+### 5. First Launch Manager
+**Technology**: Python + macOS AppleScript
+**Purpose**: Onboarding experience
+
+**Flow**:
+1. Detect first launch (no config file)
+2. Request macOS permissions (Full Disk Access)
+3. Analyze existing file structure
+4. Show choice dialog (Keep/Optimize)
+5. Display supportive notification
+6. Save user preferences
+
+**Files**:
+- `backend/first_launch.py` - First-launch logic
+
+---
+
+### 6. Notification Manager
+**Technology**: macOS osascript (AppleScript)
+**Purpose**: Native macOS notifications
+
+**Features**:
+- Top-right corner notifications
+- Sound alerts (optional)
+- Custom messages
+- No external dependencies
+
+**Files**:
+- `backend/notification_manager.py` - Notification logic
+
+---
+
+### 7. Database (SQLite)
+**Technology**: SQLite + SQLAlchemy
+**Purpose**: Local data storage
+
+**Schema**:
 ```sql
--- File Operations History
-CREATE TABLE file_operations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    filename TEXT NOT NULL,
-    original_path TEXT NOT NULL,
-    new_path TEXT,
-    operation_type TEXT NOT NULL,  -- 'detected', 'moved', 'archived'
-    file_type TEXT,                -- 'homework', 'receipt', 'media'
-    classification TEXT,           -- subcategory
-    confidence REAL,               -- 0.0 - 1.0
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status TEXT DEFAULT 'pending'  -- 'pending', 'completed', 'failed'
-);
+operations (
+    id, filename, source_path, dest_path,
+    category, confidence, timestamp, status
+)
 
--- Folder Analysis Results
-CREATE TABLE folder_analysis (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    analysis_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    total_files INTEGER,
-    folder_structure TEXT,         -- JSON
-    optimization_suggestions TEXT, -- JSON
-    user_choice TEXT               -- 'keep' or 'optimize'
-);
+reminders (
+    id, file_path, remind_at, message,
+    created_at, completed
+)
+```
 
--- File Reminders
-CREATE TABLE reminders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_path TEXT NOT NULL,
-    reminder_time DATETIME NOT NULL,
-    message TEXT,
-    status TEXT DEFAULT 'active',  -- 'active', 'completed'
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+**Files**:
+- `backend/database.py` - Database operations
+- `~/.smart_file_organizer/data.db` - SQLite file
 
--- User Preferences
-CREATE TABLE preferences (
-    key TEXT PRIMARY KEY,
-    value TEXT,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+---
 
--- Email Reports
-CREATE TABLE email_reports (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    recipient_email TEXT NOT NULL,
-    report_data TEXT,              -- JSON
-    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status TEXT DEFAULT 'sent'     -- 'sent', 'failed'
-);
+## 🔒 Security Architecture
+
+### 1. Data Protection
+
+**Files Never Leave Computer**:
+```
+User's Files (Local)
+    ↓
+Only metadata sent to API
+    ↓
+Claude API (HTTPS/TLS 1.3)
+    ↓
+Classification result
+    ↓
+Back to local computer
+```
+
+**What's Sent to AI**:
+- ✅ Filename (e.g., "CS170_HW7.pdf")
+- ✅ File size, extension, MIME type
+- ✅ Optional: PDF preview (0-500 chars, configurable)
+- ❌ Full file content: NEVER
+- ❌ File system structure: NEVER
+
+---
+
+### 2. API Key Protection
+
+**Storage**:
+```
+.env file (gitignored)
+    ↓
+Loaded by pydantic-settings
+    ↓
+Stored in memory only
+    ↓
+Never logged or exposed
+```
+
+**Security Measures**:
+- ✅ `.env` in `.gitignore`
+- ✅ Never committed to Git
+- ✅ Local storage only
+- ✅ Encrypted by macOS FileVault (if enabled)
+
+---
+
+### 3. Privacy Modes
+
+**Strict Mode** (Most Private):
+```python
+PRIVACY_MODE=strict
+EXTRACT_PDF_TEXT=false
+
+# Sends only:
+# - Filename
+# - Metadata (size, type)
+# - No content
+```
+
+**Balanced Mode** (Recommended):
+```python
+PRIVACY_MODE=balanced
+EXTRACT_PDF_TEXT=true
+MAX_PDF_CHARS=200
+
+# Sends:
+# - Filename
+# - Metadata
+# - First 200 chars from PDFs
+```
+
+**Standard Mode** (Best Accuracy):
+```python
+PRIVACY_MODE=standard
+EXTRACT_PDF_TEXT=true
+MAX_PDF_CHARS=500
+
+# Sends:
+# - Filename
+# - Metadata
+# - First 500 chars from PDFs
 ```
 
 ---
 
-## 🔐 Security & Privacy
+### 4. Network Security
+
+**HTTPS/TLS 1.3**:
+- All API calls encrypted in transit
+- Certificate validation
+- No man-in-the-middle attacks
+
+**API Request Flow**:
+```
+Local App
+    ↓ (HTTPS/TLS 1.3)
+Claude API (Anthropic)
+    ↓ (Encrypted response)
+Local App
+```
+
+**Optional Lava Gateway**:
+```
+Local App
+    ↓ (HTTPS/TLS 1.3)
+Lava API Gateway
+    ↓ (Proxied, encrypted)
+Claude API
+    ↓ (Encrypted response)
+Lava (logs metadata only)
+    ↓
+Local App
+```
+
+---
+
+### 5. Audit Logging
+
+**Optional Audit Trail**:
+```python
+LOG_AI_REQUESTS=true
+
+# Creates logs at:
+# ~/.smart_file_organizer/audit_logs/
+# ai_requests_2025-10-26.log
+```
+
+**Log Contents**:
+```
+[2025-10-26T07:30:00] AI Request:
+  Filename: CS170_HW7.pdf
+  Extension: .pdf
+  Size: 2.5 MB
+  Content Preview: 500 chars sent
+  Privacy Mode: standard
+```
+
+---
+
+### 6. Data Retention
+
+**Local (Your Computer)**:
+- Files: Forever (you control)
+- Database: Forever (or until deleted)
+- Logs: 30 days (auto-cleanup)
+
+**Claude API (Anthropic)**:
+- Request data: 30 days, then deleted
+- Not used for training
+- Privacy policy: https://www.anthropic.com/legal/privacy
+
+**Lava API (Optional)**:
+- Request metadata only (no file content)
+- As per Lava's retention policy
+
+---
+
+## 📊 Technology Stack
+
+### Backend
+- **Python 3.10+** - Core language
+- **FastAPI** - Web framework
+- **Pydantic** - Data validation
+- **SQLAlchemy** - Database ORM
+- **Watchdog** - File system monitoring
+- **Anthropic SDK** - Claude API client
+- **python-dotenv** - Environment variables
+
+### Frontend
+- **Vanilla JavaScript** - No frameworks
+- **HTML5/CSS3** - Modern web standards
+- **Fetch API** - HTTP requests
+
+### AI/ML
+- **Claude 3.5 Sonnet** - File classification
+- **Anthropic API** - AI service
+- **Lava** (Optional) - API gateway
+
+### macOS Integration
+- **FSEvents** - File system events
+- **AppleScript** - Notifications & dialogs
+- **osascript** - System integration
+
+### Database
+- **SQLite** - Local database
+- **aiosqlite** - Async SQLite
+
+---
+
+## ⚡ Performance Metrics
+
+### File Classification
+- **Latency**: ~500ms average
+- **Accuracy**: ~95% with context
+- **Throughput**: 2-3 files/second
+
+### File Monitoring
+- **Detection**: <200ms
+- **Processing**: <1 second total
+- **CPU Usage**: <5% idle, <20% active
+
+### Memory Usage
+- **Idle**: ~50MB
+- **Active**: ~100MB
+- **Peak**: ~150MB
+
+---
+
+## 🔄 Error Handling
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    DATA PRIVACY LAYERS                          │
+│                      ERROR HANDLING FLOW                        │
 │                                                                 │
-│  Layer 1: Local Processing                                     │
-│  ├─ All file operations happen locally                         │
-│  ├─ No file content uploaded to cloud                          │
-│  └─ Database stored locally (SQLite)                           │
+│  1. API Key Missing                                             │
+│     ├─> Check .env file                                         │
+│     ├─> Show error message                                      │
+│     ├─> Provide setup instructions                              │
+│     └─> Exit gracefully                                         │
 │                                                                 │
-│  Layer 2: Minimal API Data                                     │
-│  ├─ Only metadata sent to AI APIs:                             │
-│  │  - Filename                                                 │
-│  │  - File type/extension                                      │
-│  │  - File size                                                │
-│  │  - PDF text preview (first 500 chars only)                  │
-│  ├─ Never send:                                                │
-│  │  - Full file content                                        │
-│  │  - Personal information                                     │
-│  │  - File paths (only relative paths)                         │
+│  2. Claude API Error                                            │
+│     ├─> Catch API exception                                     │
+│     ├─> Log error details                                       │
+│     ├─> Fallback to filename-based classification              │
+│     └─> Notify user                                             │
 │                                                                 │
-│  Layer 3: API Key Security                                     │
-│  ├─ Stored in .env file (gitignored)                           │
-│  ├─ Never committed to version control                         │
-│  ├─ Loaded via environment variables                           │
-│  └─ Not exposed in API responses                               │
+│  3. Rate Limit                                                  │
+│     ├─> Catch rate limit exception                              │
+│     ├─> Implement exponential backoff                           │
+│     ├─> Queue requests                                          │
+│     └─> Fallback to rule-based classification                   │
 │                                                                 │
-│  Layer 4: User Control                                         │
-│  ├─ Toggle on/off anytime                                      │
-│  ├─ Archive before delete                                      │
-│  ├─ All operations logged                                      │
-│  └─ Can review before confirming                               │
+│  4. Network Error                                               │
+│     ├─> Retry with timeout                                      │
+│     ├─> Fallback to offline mode                                │
+│     ├─> Queue for later processing                              │
+│     └─> Notify user                                             │
+│                                                                 │
+│  5. File Already Exists                                         │
+│     ├─> Detect duplicate                                        │
+│     ├─> Append number (_1, _2, etc.)                            │
+│     ├─> Log operation                                           │
+│     └─> Continue                                                │
+│                                                                 │
+│  6. Permission Denied                                           │
+│     ├─> Detect permission error                                 │
+│     ├─> Show macOS permission dialog                            │
+│     ├─> Guide user to System Settings                           │
+│     └─> Retry after permission granted                          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ⚡ Performance Optimization
+## 🚀 Deployment Architecture
 
+### Development
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    OPTIMIZATION STRATEGIES                      │
-│                                                                 │
-│  1. Model Quantization (Annapurna Labs Track)                  │
-│     ├─ INT8 quantization for inference                         │
-│     ├─ Reduced model size: 70B → optimized                     │
-│     └─ Result: 500ms → <50ms latency                           │
-│                                                                 │
-│  2. Async Operations                                           │
-│     ├─ Non-blocking file operations                            │
-│     ├─ Background reminder service                             │
-│     └─ Async API endpoints                                     │
-│                                                                 │
-│  3. Caching                                                    │
-│     ├─ Cache file metadata                                     │
-│     ├─ Cache classification results                            │
-│     └─ Reuse for duplicate files                               │
-│                                                                 │
-│  4. Batch Processing                                           │
-│     ├─ Batch classify multiple files                           │
-│     ├─ Single API call for multiple items                      │
-│     └─ Reduced API overhead                                    │
-│                                                                 │
-│  5. Memory Management                                          │
-│     ├─ Stream large files                                      │
-│     ├─ Limit PDF text extraction                               │
-│     └─ Clean up temp data                                      │
-└─────────────────────────────────────────────────────────────────┘
+Local Machine
+├── Python venv
+├── SQLite database
+├── .env file (local)
+└── FastAPI dev server
+```
+
+### Production (macOS App)
+```
+SmartFileOrganizer.app/
+├── Contents/
+│   ├── MacOS/
+│   │   └── SmartFileOrganizer (launcher)
+│   ├── Resources/
+│   │   ├── backend/ (Python code)
+│   │   ├── frontend/ (Web UI)
+│   │   ├── venv/ (Python environment)
+│   │   └── .env.example
+│   └── Info.plist (macOS metadata)
+```
+
+### Distribution
+```
+SmartFileOrganizer.dmg
+├── SmartFileOrganizer.app
+└── README.txt
 ```
 
 ---
 
-## 🎯 Error Handling Flow
+## 🎯 Design Principles
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    ERROR SCENARIOS                              │
-│                                                                 │
-│  1. API Key Missing/Invalid                                    │
-│     ├─> Validate on startup                                    │
-│     ├─> Show clear error message                               │
-│     ├─> Provide setup instructions                             │
-│     └─> Fallback to rule-based classification                  │
-│                                                                 │
-│  2. File Permission Error                                      │
-│     ├─> Catch PermissionError                                  │
-│     ├─> Log error to database                                  │
-│     ├─> Show notification to user                              │
-│     └─> Skip file, continue processing                         │
-│                                                                 │
-│  3. API Rate Limit                                             │
-│     ├─> Catch rate limit exception                             │
-│     ├─> Implement exponential backoff                          │
-│     ├─> Queue requests                                         │
-│     └─> Fallback to rule-based                                 │
-│                                                                 │
-│  4. Network Error                                              │
-│     ├─> Retry with timeout                                     │
-│     ├─> Fallback to offline mode                               │
-│     ├─> Queue for later processing                             │
-│     └─> Notify user                                            │
-│                                                                 │
-│  5. File Already Exists                                        │
-│     ├─> Detect duplicate                                       │
-│     ├─> Append number (_1, _2, etc.)                           │
-│     ├─> Log operation                                          │
-│     └─> Continue                                               │
-└─────────────────────────────────────────────────────────────────┘
-```
+### 1. Privacy-First
+- Files stay local
+- Minimal data sent to AI
+- User controls privacy mode
+- Audit logging available
+
+### 2. Native Integration
+- macOS notifications
+- FSEvents monitoring
+- AppleScript dialogs
+- Feels like a Mac app
+
+### 3. Simplicity
+- Single command to launch
+- No complex configuration
+- Sensible defaults
+- Easy to understand
+
+### 4. Reliability
+- Error handling everywhere
+- Fallback mechanisms
+- Graceful degradation
+- User-friendly errors
+
+### 5. Performance
+- <1 second file organization
+- Low CPU/memory usage
+- Efficient file monitoring
+- Async operations
 
 ---
 

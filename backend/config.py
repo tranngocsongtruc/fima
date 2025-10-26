@@ -41,6 +41,24 @@ class Settings(BaseSettings):
     enable_notifications: bool = True
     enable_sound_alerts: bool = True
     
+    # ============================================
+    # PRIVACY & SECURITY SETTINGS
+    # ============================================
+    # Privacy mode: strict, balanced, standard
+    # - strict: filename only, no content
+    # - balanced: filename + 200 chars from PDFs
+    # - standard: filename + 500 chars from PDFs
+    privacy_mode: str = "standard"
+    
+    # Extract text from PDFs for better classification
+    extract_pdf_text: bool = True
+    
+    # Maximum characters to extract from PDFs
+    max_pdf_chars: int = 500
+    
+    # Log what data is sent to AI (for auditing)
+    log_ai_requests: bool = False
+    
     # Database
     database_path: str = "./data/file_organizer.db"
     
