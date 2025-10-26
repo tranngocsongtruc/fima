@@ -30,6 +30,35 @@ class AIFileClassifier:
         self.model = settings.claude_model
         self.use_lava = use_lava_if_available()
     
+    def scan_existing_folders(self) -> str:
+        """Scan user's existing folder structure to find ideal locations"""
+        home = Path.home()
+        relevant_folders = []
+        
+        # Scan Desktop for course folders
+        desktop = home / "Desktop"
+        if desktop.exists():
+            for item in desktop.iterdir():
+                if item.is_dir() and not item.name.startswith('.'):
+                    # Look for course-related folders
+                    if any(keyword in item.name.lower() for keyword in ['cal', 'cs', 'eecs', 'math', 'eng']):
+                        relevant_folders.append(str(item.relative_to(home)))
+                        # Check subdirectories
+                        for subitem in item.iterdir():
+                            if subitem.is_dir() and not subitem.name.startswith('.'):
+                                relevant_folders.append(str(subitem.relative_to(home)))
+        
+        # Scan Documents
+        documents = home / "Documents"
+        if documents.exists():
+            for item in documents.iterdir():
+                if item.is_dir() and not item.name.startswith('.'):
+                    relevant_folders.append(str(item.relative_to(home)))
+        
+        if relevant_folders:
+            return "\n".join(f"- {folder}" for folder in relevant_folders[:20])  # Limit to 20
+        return "No existing folders found"
+    
     def extract_file_metadata(self, file_path: Path) -> Dict:
         """Extract metadata from file for classification"""
         try:
@@ -174,6 +203,9 @@ Always respond in valid JSON format with these fields:
     
     def _build_classification_prompt(self, metadata: Dict) -> str:
         """Build a detailed prompt for file classification"""
+        # Scan existing folders
+        existing_folders = self.scan_existing_folders()
+        
         prompt = f"""Classify this file and suggest an optimal folder structure:
 
 Filename: {metadata.get('filename', 'unknown')}
@@ -185,17 +217,25 @@ MIME Type: {metadata.get('mime_type', 'unknown')}
         if 'content_preview' in metadata and metadata['content_preview']:
             prompt += f"\nContent Preview:\n{metadata['content_preview']}\n"
         
-        prompt += """
-Examples of good classifications:
-- "CS170_HW7.pdf" → category: homework, path: uc_berkeley/fall_2025/cs170/homework
-- "receipt_amazon.pdf" → category: receipt, path: personal/receipts/2025/amazon
-- "project_proposal.docx" → category: work, path: work/projects/proposals
-- "vacation_photo.jpg" → category: media, path: personal/photos/2025
+        prompt += f"""
+IMPORTANT: The user has these existing folders:
+{existing_folders}
 
-Analyze the filename, content, and context to determine:
+RULES:
+1. PREFER using existing folders when appropriate (e.g., if "Desktop/calundergrad/cs170" exists, use it for CS170 files)
+2. If a suitable existing folder exists, use it instead of creating new folders
+3. For course files, check if Desktop/calundergrad/[course_name] exists
+4. Only suggest new folders if no existing folder is suitable
+
+Examples:
+- "hw08.pdf" for CS170 → If "Desktop/calundergrad/cs170" exists, suggest: Desktop/calundergrad/cs170/homework
+- "receipt.pdf" → If "Documents/receipts" exists, use it; otherwise create: Documents/fima/receipts
+- New course file → If no existing folder, create: Documents/fima/school/[course]/[category]
+
+Analyze the filename, content, and existing folders to determine:
 1. What type of file this is
-2. The optimal folder hierarchy
-3. Any relevant metadata (school, course, company, etc.)
+2. Whether an existing folder is suitable
+3. The optimal folder path (prefer existing folders!)
 """
         return prompt
     

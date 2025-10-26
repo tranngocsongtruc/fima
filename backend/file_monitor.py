@@ -123,9 +123,13 @@ class DownloadHandler(FileSystemEventHandler):
         # Get user's home directory
         home = Path.home()
         
-        # Build path: ~/Documents/SmartFileOrganizer/{suggested_path}/{filename}
-        base_dir = home / "Documents" / "SmartFileOrganizer"
-        destination_dir = base_dir / suggested_path
+        # If suggested_path starts with Desktop or Documents, use it directly
+        if suggested_path.startswith('Desktop/') or suggested_path.startswith('Documents/'):
+            destination_dir = home / suggested_path
+        else:
+            # Otherwise use fima base directory
+            base_dir = home / "Documents" / "fima"
+            destination_dir = base_dir / suggested_path
         
         # Create directory if it doesn't exist
         destination_dir.mkdir(parents=True, exist_ok=True)

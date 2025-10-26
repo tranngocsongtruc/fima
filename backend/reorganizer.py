@@ -173,7 +173,7 @@ class FileReorganizer:
                 return False
             
             # Create archive directory
-            archive_base = Path.home() / "Documents" / "SmartFileOrganizer" / "_archived"
+            archive_base = Path.home() / "Documents" / "fima" / "_archived"
             archive_base.mkdir(parents=True, exist_ok=True)
             
             # Create timestamped archive folder
@@ -242,7 +242,7 @@ class FileReorganizer:
             return None
         
         # Create archive directory
-        archive_base = Path.home() / "Documents" / "SmartFileOrganizer" / "_to_review"
+        archive_base = Path.home() / "Documents" / "fima" / "_to_review"
         archive_base.mkdir(parents=True, exist_ok=True)
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

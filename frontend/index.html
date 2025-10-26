@@ -933,11 +933,16 @@
                     
                     // Update file select dropdown for reminders
                     fileSelect.innerHTML = '<option value="">Choose a recently organized file...</option>' +
-                        operations.map(op => `
-                            <option value="${op.dest_path}/${op.filename}">
-                                📄 ${op.filename} (${op.category})
-                            </option>
-                        `).join('');
+                        operations.map(op => {
+                            const fullPath = `${op.dest_path}/${op.filename}`;
+                            const displayPath = fullPath.replace(/^\/Users\/[^\/]+/, '~'); // Shorten home path
+                            return `
+                                <option value="${fullPath}" title="${fullPath}">
+                                    📄 ${op.filename}
+                                    <br>📁 ${displayPath}
+                                </option>
+                            `;
+                        }).join('');
                 }
             } catch (error) {
                 console.error('Error loading operations:', error);

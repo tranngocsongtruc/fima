@@ -255,14 +255,14 @@ if __name__ == "__main__":
         {
             'filename': 'CS170_HW7.pdf',
             'original_path': '~/Downloads/CS170_HW7.pdf',
-            'new_path': '~/Documents/SmartFileOrganizer/uc_berkeley/fall_2025/cs170/homework/CS170_HW7.pdf',
+            'new_path': '~/Desktop/calundergrad/cs170/homework/CS170_HW7.pdf',
             'classification': 'homework',
             'timestamp': datetime.now().isoformat()
         },
         {
             'filename': 'receipt.pdf',
             'original_path': '~/Downloads/receipt.pdf',
-            'new_path': '~/Documents/SmartFileOrganizer/personal/receipts/2025/receipt.pdf',
+            'new_path': '~/Documents/fima/receipts/2025/receipt.pdf',
             'classification': 'receipt',
             'timestamp': datetime.now().isoformat()
         }

@@ -114,10 +114,10 @@
 
 ## 📊 Documentation Stats
 
-- **Total files**: 7 markdown files
-- **Total pages**: ~80 pages
-- **Reading time**: ~45 minutes (all docs)
-- **Quick start**: 5 minutes (README only)
+- **Total files**: 10 markdown files (all up-to-date)
+- **Total pages**: ~100 pages
+- **Reading time**: ~60 minutes (all docs)
+- **Quick start**: 10 minutes (HOW_TO_RUN.md)
 
 ---
 
