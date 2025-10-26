@@ -158,16 +158,33 @@ Always respond in valid JSON format with these fields:
             
             # Route through Lava if configured, otherwise direct to Claude
             if self.use_lava:
-                print("📊 Routing through Lava API gateway for cost tracking...")
-                response = lava_gateway.forward_claude_request(
-                    model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
-                    system=system_prompt,
-                    max_tokens=settings.max_tokens,
-                    temperature=settings.ai_temperature
-                )
-                # Lava returns the same format as Claude
-                content = response['content'][0]['text']
+                try:
+                    print("📊 Routing through Lava API gateway for cost tracking...")
+                    response = lava_gateway.forward_claude_request(
+                        model=self.model,
+                        messages=[{"role": "user", "content": prompt}],
+                        system=system_prompt,
+                        max_tokens=settings.max_tokens,
+                        temperature=settings.ai_temperature
+                    )
+                    # Lava returns the same format as Claude
+                    content = response['content'][0]['text']
+                except Exception as lava_error:
+                    print(f"⚠️  Lava gateway failed, falling back to direct Claude API: {lava_error}")
+                    # Fallback to direct Claude API
+                    response = self.client.messages.create(
+                        model=self.model,
+                        max_tokens=settings.max_tokens,
+                        temperature=settings.ai_temperature,
+                        system=system_prompt,
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": prompt
+                            }
+                        ]
+                    )
+                    content = response.content[0].text
             else:
                 response = self.client.messages.create(
                     model=self.model,

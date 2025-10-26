@@ -87,7 +87,7 @@ class DownloadHandler(FileSystemEventHandler):
             destination = self._build_destination_path(file_path, suggested_path)
             
             # Move the file
-            if confidence > 0.5:  # Only auto-move if confident
+            if confidence > 0.25:  # Only auto-move if reasonably confident
                 success = self.move_file(file_path, destination, operation_id)
                 
                 if success:
@@ -123,13 +123,9 @@ class DownloadHandler(FileSystemEventHandler):
         # Get user's home directory
         home = Path.home()
         
-        # If suggested_path starts with Desktop or Documents, use it directly
-        if suggested_path.startswith('Desktop/') or suggested_path.startswith('Documents/'):
-            destination_dir = home / suggested_path
-        else:
-            # Otherwise use fima base directory
-            base_dir = home / "Documents" / "fima"
-            destination_dir = base_dir / suggested_path
+        # AI already provides the full path relative to home
+        # Just use it directly - AI is smart enough to find existing folders
+        destination_dir = home / suggested_path
         
         # Create directory if it doesn't exist
         destination_dir.mkdir(parents=True, exist_ok=True)

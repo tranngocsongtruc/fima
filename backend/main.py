@@ -164,7 +164,6 @@ async def get_status():
         "downloads_folder": str(get_downloads_folder()),
         "statistics": stats,
         "api_keys_configured": {
-            "groq": bool(settings.groq_api_key),
             "claude": bool(settings.anthropic_api_key),
             "lava": bool(settings.lava_api_key)
         }
@@ -506,6 +505,16 @@ async def startup_event():
     # Start reminder service in background
     if reminder_service:
         asyncio.create_task(reminder_service.start_background_task())
+    
+    # Auto-start file monitor
+    global file_monitor
+    if FileMonitor and file_monitor is None:
+        try:
+            file_monitor = FileMonitor()
+            file_monitor.start()
+            print("✅ File monitor started automatically")
+        except Exception as e:
+            print(f"⚠️  Could not auto-start file monitor: {e}")
     
     print(f"\n✅ Server ready at http://{settings.host}:{settings.port}")
     print(f"📚 API docs at http://{settings.host}:{settings.port}/docs")
